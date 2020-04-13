@@ -5,6 +5,7 @@ var chart = Chart.Line(canvas,{
 		datasets: [
 			{
 				label: "Probe1", 
+				fill: false,
 				data: [],
 				backgroundColor: [
 					'rgba(255, 99, 132, 0.2)',
