@@ -1,121 +1,46 @@
-var canvas = document.getElementById("myCanvas");
+var minuteCanvas = document.getElementById("minutes");
+var hourCanvas = document.getElementById("minutes");
 
-var chart = Chart.Line(canvas,{
-	data:{
-		datasets: [
-			/*
-			{
-				label: "Probe1", 
-				fill: false,
-				data: [],
-				backgroundColor: [
-					'rgba(255, 99, 132, 0.2)',
-				],
-				borderColor: [
-					'rgba(255, 99, 132, 1)',
-				],
-
-				borderWidth: 1
-			},
-			*/
-			/*
-			{
-				label: "Probe2", 
-				fill: false,
-				data: [],
-				backgroundColor: [
-					'rgba(255, 99, 132, 0.2)',
-				],
-				borderColor: [
-					'rgba(255, 99, 132, 1)',
-				],
-
-				borderWidth: 1
-			},
-			{
-				label: "Probe3", 
-				fill: false,
-				data: [],
-				backgroundColor: [
-					'rgba(255, 99, 132, 0.2)',
-				],
-				borderColor: [
-					'rgba(255, 99, 132, 1)',
-				],
-
-				borderWidth: 1
-			},
-			{
-				label: "Probe4", 
-				fill: false,
-				data: [],
-				backgroundColor: [
-					'rgba(255, 99, 132, 0.2)',
-				],
-				borderColor: [
-					'rgba(255, 99, 132, 1)',
-				],
-
-				borderWidth: 1
-			},
-			{
-				label: "Probe5", 
-				fill: false,
-				data: [],
-				backgroundColor: [
-					'rgba(255, 99, 132, 0.2)',
-				],
-				borderColor: [
-					'rgba(255, 99, 132, 1)',
-				],
-
-				borderWidth: 1
-			},
-			{
-				label: "Probe6", 
-				fill: false,
-				data: [],
-				backgroundColor: [
-					'rgba(255, 99, 132, 0.2)',
-				],
-				borderColor: [
-					'rgba(255, 99, 132, 1)',
-				],
-
-				borderWidth: 1
+var chartOptions = {
+	scales: {
+		yAxes:[{
+			gridLines: {
+				display:true,
+				color:"rgba(255,99,132,0.2)"
 			}
+		}],
+		xAxes:[{
+			type: 'time',
+			/*
+			time: {
+				unit: 'minute'
+			},
 			*/
-		],
-	},
-	options:{
-		scales: {
-			yAxes:[{
-				gridLines: {
-					display:true,
-					color:"rgba(255,99,132,0.2)"
-				}
-			}],
-			xAxes:[{
-				type: 'time',
-				time: {
-					unit: 'minute'
-				},
-				gridLines: {
-					display:true,
-					color:"rgba(255,99,132,0.2)"
-				}
-			}]
-		}
+			gridLines: {
+				display:true,
+				color:"rgba(255,99,132,0.2)"
+			}
+		}]
 	}
+};
+
+var minuteChart = new Chart.Line(minuteCanvas,{
+	options: chartOptions
 });
 
+var hourChart = new Chart.Line(hourCanvas,{
+	options: chartOptions
+});
+
+minuteChart.options.scales.xAxes[0].time.unit = 'minute';
+hourChart.options.scales.xAxes[0].time.unit = 'hour';
+
+var charts = [
+	minuteChart,
+	hourChart
+];
+
 var colors = [
-	//#987284
-	//#75B9BE
-	//#D0D6B5
-	//#F9B5AC
-	//#EE7674
-	//#4D5382
 	{
 		background: 'rgba(152, 114, 132, 0.2)',
 		border: 'rgba(152, 114, 132, 1)',
@@ -162,54 +87,55 @@ ws.onmessage = function(evt) {
 	let payload = JSON.parse(evt.data);
 	let temps = payload.Temperatures;
 	let t = payload.T;
-	//let ds = chart.data.datasets;
 
-	for (let i = 0; i < temps.length; i++) {
-		let temp = temps[i];
+	for (let c in charts) {
+		let chart = charts[c];
 
-		let label = 'Probe' + (i + 1);
-		let dsi = chart.data.datasets.findIndex((x) => x.label == label);
-		let ds = null;
+		for (let i = 0; i < temps.length; i++) {
+			let temp = temps[i];
 
-		if (dsi != -1) {
-			ds = chart.data.datasets[dsi];
-		} else {
-			let color = colors[i];
+			let label = 'Probe' + (i + 1);
+			let dsi = chart.data.datasets.findIndex((x) => x.label == label);
+			let ds = null;
 
-			ds = {
-				label: label, 
-				fill: false,
-				data: [],
-				backgroundColor: [
-					//'rgba(255, 99, 132, 0.2)',
-					color.background,
-				],
-				borderColor: [
-					//'rgba(255, 99, 132, 1)',
-					color.border,
-				],
+			if (dsi != -1) {
+				ds = chart.data.datasets[dsi];
+			} else {
+				let color = colors[i];
 
-				borderWidth: 1
+				ds = {
+					label: label, 
+					fill: false,
+					data: [],
+					backgroundColor: [
+						color.background,
+					],
+					borderColor: [
+						color.border,
+					],
+
+					borderWidth: 1
+				}
+
+				chart.data.datasets.push(ds);
 			}
 
-			chart.data.datasets.push(ds);
+			if (ds.data.length == maxLen) {
+				ds.data.shift();
+			}
+
+			if (temp == -32768) {
+				continue;
+			}
+
+			ds.data.push({
+				x: t,
+				y: temp
+			});
 		}
 
-		if (ds.data.length == maxLen) {
-			ds.data.shift();
-		}
-
-		if (temp == -32768) {
-			continue;
-		}
-
-		ds.data.push({
-			x: t,
-			y: temp
-		});
+		chart.update();
 	}
-
-	chart.update();
 }
 
 ws.onerror = function(evt) {
